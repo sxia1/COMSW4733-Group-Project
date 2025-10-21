@@ -63,6 +63,13 @@ docker run --name isaac-sim --entrypoint bash -it --runtime=nvidia --gpus all -e
 PUBLIC_IP=$(curl -s ifconfig.me) && ./runheadless.sh --/app/livestream/publicEndpointAddress=$PUBLIC_IP --/app/livestream/port=49100
 ```
 
+Install Isaac Sim WebRTC Streaming Client on your Local Desktop  
+Run the client using the public ip address of the gcloud Spot Instance  
+
+
 # Official Documentation
-[How to Install Isaac Sim on Google Cloud](https://docs.isaacsim.omniverse.nvidia.com/5.0.0/installation/install_advanced_cloud_setup_gcp.html)
-[Install GPU Driver](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#linux)
+[How to Install Isaac Sim on Google Cloud](https://docs.isaacsim.omniverse.nvidia.com/5.0.0/installation/install_advanced_cloud_setup_gcp.html)  
+
+[Install GPU Driver](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#linux)  
+
+[Issac Sim Latest Releases](https://docs.isaacsim.omniverse.nvidia.com/5.0.0/installation/download.html#isaac-sim-latest-release)  
