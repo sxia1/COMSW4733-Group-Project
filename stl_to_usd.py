@@ -1,54 +1,56 @@
+import asyncio
 import os
-from meshlib import mrmeshpy as mm
-from meshlib import mrviewerpy as mv
 from pathlib import Path
+import omni.kit.asset_converter
 
 def convert_point_cloud_to_mesh(point_cloud_file, save_dir, smooth=True):
     mesh_filename = os.path.join(
         save_dir,
         f"{os.path.basename(point_cloud_file)[:-3]}stl"
     )
-    if os.path.exists(mesh_filename):
-        print(mesh_filename, "already exists... Skipping...")
-        return mesh_filename
-    pc = mm.loadPoints(point_cloud_file)
-    #samplingSettings = mm.UniformSamplingSettings()
-    #samplingSettings.distance = 1e-3
-    #pc.validPoints = mm.pointUniformSampling(pc, samplingSettings)
-    #pc.invalidateCaches()
-    test_mesh = mm.triangulatePointCloud(pc)
-    if smooth:
-        # Create parameters for adding noise
-        #nSettings = mm.NoiseSettings()
-        #nSettings.sigma = test_mesh.computeBoundingBox().diagonal()*0.0001
-        # Add noise to mesh
-        #mm.addNoise(test_mesh.points,test_mesh.topology.getValidVerts(),nSettings)
-        # Save noised mesh
-        #mm.saveMesh(test_mesh,"noised_mesh.stl")
-        # Denoise mesh with sharpening for sharp edges
-        # see the article "Mesh Denoising via a Novel Mumford-Shah Framework"
-        dnSettings = mm.DenoiseViaNormalsSettings()
-        dnSettings.beta = 0.1
-        dnSettings.gamma = 1.0
-        mm.meshDenoiseViaNormals(test_mesh, dnSettings)
-        # Save denoised mesh
-    mm.saveMesh(test_mesh, mesh_filename)
     return mesh_filename
 
-def get_largest_connected_component(meshfile):
-    """
-    should modify the meshfiles to contain only the largest connected component
-    should remove disconnected branches
-    need to figure out how to evaluate the prune points from voxels to mesh
-    """
-    pass
+# https://docs.isaacsim.omniverse.nvidia.com/5.0.0/python_scripting/environment_setup.html#convert-asset-to-usd
+async def convert_asset_to_usd(input_obj: str, output_usd: str):
+    mesh_filename = os.path.join(
+        output_usd,
+        f"{os.path.basename(input_obj)[:-3]}usd"
+    )
+    print(mesh_filename)
+    def progress_callback(progress, total_steps):
+        pass
+    converter_context = omni.kit.asset_converter.AssetConverterContext()
+    # setup converter and flags
+    # converter_context.ignore_material = False
+    # converter_context.ignore_animation = False
+    # converter_context.ignore_cameras = True
+    # converter_context.single_mesh = True
+    converter_context.smooth_normals = True
+    # converter_context.preview_surface = False
+    # converter_context.support_point_instancer = False
+    # converter_context.embed_mdl_in_usd = False
+    converter_context.use_meter_as_world_unit = True
+    # converter_context.create_world_as_default_root_prim = False
+    instance = omni.kit.asset_converter.get_instance()
+    task = instance.create_converter_task(input_obj, mesh_filename, progress_callback, converter_context)
+    success = await task.wait_until_finished()
+    if not success:
+        carb.log_error(task.get_status(), task.get_detailed_error())
+    
 
-wdir = Path(__file__).parent
-raw_data_dir = os.path.join(wdir,"data/raw/")
+raw_data_dir = "/root/data/raw/"
 for name in os.listdir(raw_data_dir):
     filename = os.path.join(raw_data_dir, name)
     print("Converting: ", filename)
-    mesh_name = convert_point_cloud_to_mesh(filename, os.path.join(wdir, "data/mesh"))
+    mesh_name = convert_point_cloud_to_mesh(filename, "/root/data/mesh")
+    asyncio.ensure_future(
+        convert_asset_to_usd(
+            mesh_name,
+            "/root/data/mesh"
+        )
+    )
+    print("DONE Converting: ", filename)
+    break
 
 """
 # Load mesh
