@@ -25,3 +25,5 @@ xform.AddTranslateOp().Set(Gf.Vec3f(0.55, 0.0, 0.30))
 UsdGeom.Gprim(cube.GetPrim()).CreateDisplayColorAttr([(1.0, 0.1, 0.1)])
 
 print("Cube created:", stage.GetPrimAtPath(path).IsValid())
+
+print("test")
