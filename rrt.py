@@ -1,17 +1,27 @@
+import asyncio
 import os
-import omni.usd
-from pxr import Usd, UsdGeom, Sdf, Gf
 import numpy as np
+import omni.usd
+from pxr import Usd, UsdGeom, Sdf, Gf, UsdPhysics, PhysxSchema
 from omni.isaac.core import World
 from omni.isaac.core.utils.prims import is_prim_path_valid
+from omni.isaac.core.prims import XFormPrim
+from omni.isaac.core.utils.stage import add_reference_to_stage
 from omni.isaac.franka import Franka
 from omni.isaac.motion_generation import ArticulationKinematicsSolver
 from omni.isaac.core.utils.types import ArticulationAction
+from omni.isaac.core.objects.ground_plane import GroundPlane
+from omni.physx.scripts import utils
 from isaacsim.core.utils.extensions import get_extension_path_from_name
 from isaacsim.core.prims import Articulation
 from isaacsim.robot_motion.motion_generation.lula import RRT
+from isaacsim.core.api.robots import Robot
 
 def create_world(stage):
+    if World.instance():
+        World.instance().clear_instance()
+    world = World()
+    """
     if stage.GetDefaultPrim() is None:
         world_xf = UsdGeom.Xform.Define(stage, Sdf.Path("/World"))
         stage.SetDefaultPrim(world_xf.GetPrim())
@@ -21,28 +31,87 @@ def create_world(stage):
         world = None
     if world is None:
         world = World(stage_units_in_meters=1.0)
-    else:
-        world.scene.clear()
+    #    world.scene.clear()
+    """
     return world
 
-def create_branch(stage):
-    branch_path = Sdf.Path("/World/branch")
-    if not stage.GetPrimAtPath(branch_path):
-        cube = UsdGeom.Cube.Define(stage, branch_path)
-    else:
-        cube = UsdGeom.Cube.Get(stage, branch_path)
+def create_ground(stage):
+    return GroundPlane(prim_path="/World/groundPlane", size=10, color=np.array([0,153,23]))
 
-    cube.CreateSizeAttr(0.08)
-    xf = UsdGeom.Xformable(cube.GetPrim())
+# https://docs.isaacsim.omniverse.nvidia.com/5.0.0/python_scripting/environment_setup.html#convert-asset-to-usd
+async def convert_asset_to_usd(input_obj: str, output_usd: str):
+    import omni.kit.asset_converter
+    def progress_callback(progress, total_steps):
+        pass
+    converter_context = omni.kit.asset_converter.AssetConverterContext()
+    # setup converter and flags
+    # converter_context.ignore_material = False
+    # converter_context.ignore_animation = False
+    # converter_context.ignore_cameras = True
+    # converter_context.single_mesh = True
+    # converter_context.smooth_normals = True
+    # converter_context.preview_surface = False
+    # converter_context.support_point_instancer = False
+    # converter_context.embed_mdl_in_usd = False
+    converter_context.use_meter_as_world_unit = True
+    # converter_context.create_world_as_default_root_prim = False
+    instance = omni.kit.asset_converter.get_instance()
+    task = instance.create_converter_task(input_obj, output_usd, progress_callback, converter_context)
+    success = await task.wait_until_finished()
+    if not success:
+        carb.log_error(task.get_status(), task.get_detailed_error())
+    print("converting done")
+
+"""
+asyncio.ensure_future(
+    convert_asset_to_usd(
+        "/root/denoised_mesh.stl",
+        "/root/denoised_mesh.usd",
+    )
+)
+"""
+
+def create_tree(stage):
+    tree_prim = add_reference_to_stage(
+        usd_path="/root/data/denoised_mesh.usd",
+        prim_path="/World/tree"
+    )
+    xf = UsdGeom.Xformable(tree_prim)
     xf.SetXformOpOrder([])
-    xf.AddTranslateOp().Set(Gf.Vec3f(0.55, 0.0, 0.30))
-    UsdGeom.Gprim(cube.GetPrim()).CreateDisplayColorAttr([(1.0, 0.1, 0.1)])
-    return stage.GetPrimAtPath("/World/branch")
+    xf.AddTranslateOp().Set(Gf.Vec3d(0.0,-0.15,0.6))
+    UsdGeom.Gprim(tree_prim).CreateDisplayColorAttr([(164,116,73)]) 
+    utils.setRigidBody(tree_prim, "convexDecomposition", False)
+    return tree_prim
+    
+def get_world_transform(prim_path):
+    timeline = omni.timeline.get_timeline_interface()
+    timecode = timeline.get_current_time() * timeline.get_time_codes_per_seconds()
+    prim = stage.GetPrimAtPath(prim_path)
+    pose = omni.usd.utils.get_world_transform_matrix(prim, timecode)
+    print("Matrix Form:", pose)
 
+# https://docs.isaacsim.omniverse.nvidia.com/latest/core_api_tutorials/tutorial_core_hello_robot.html
 def create_robot(stage, world):
-    if is_prim_path_valid("/World/franka"):
-        return stage.GetPrimAtPath("/World/franka")
-    return world.scene.add(Franka(prim_path="/World/franka", name="franka"))
+    return add_reference_to_stage(
+        usd_path="/root/robots/ur5e_cutter_new_calibrated_precise_level/ur5e_cutter_new_calibrated_precise_level.usd",
+        prim_path="/World/ur5e_cutter")
+    return robot
+
+def create_scene(stage):
+    print("creating world")
+    world = create_world(stage)
+    print("creating ground")
+    ground = create_ground(stage)
+    print("creating tree")
+    tree = create_tree(stage)
+    print("creating ur5e cutter")
+    ur5e_cutter = create_robot(stage, world)
+    print("Setting Physics")
+    scene = UsdPhysics.Scene.Define(stage, Sdf.Path("/World/physicsScene"))
+    scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(0.0, 0.0, -1.0))
+    scene.CreateGravityMagnitudeAttr().Set(981.0)
+    PhysxSchema.PhysxSceneAPI.apply(stage.GetPrimAtPath("/World/physicsScene"))
+
 
 def create_rrt():
     mg_extension_path = get_extension_path_from_name("isaacsim.robot_motion.motion_generation")
@@ -58,10 +127,11 @@ def create_rrt():
     return rrt
 
 stage = omni.usd.get_context().get_stage()
-world = create_world(stage)
-branch_prim = create_branch(stage)
-franka = create_robot(stage, world)
+create_scene(stage)
+get_world_transform("/World/tree")
+get_world_transform("/World/ur5e_cutter")
 
+"""
 target_pos = Gf.Vec3f(0.55, 0.0, 0.30)
 if branch_prim and branch_prim.IsValid():
     xfm = UsdGeom.Xformable(branch_prim)
@@ -86,3 +156,4 @@ for i in range(steps):
     if plan:
         action = plan.pop(0)
         articulation.apply_action(action)
+"""
