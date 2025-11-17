@@ -1,4 +1,5 @@
-docker run --name isaac-sim --entrypoint bash -it --runtime=nvidia --gpus all \
+docker build -t ros-isaac-sim .
+docker run --name sophia-isaac-sim --entrypoint bash -it --runtime=nvidia --gpus all \
 	-e "ACCEPT_EULA=Y" --rm --network=host \
 	-e "PRIVACY_CONSENT=Y" \
 	-v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
@@ -11,3 +12,5 @@ docker run --name isaac-sim --entrypoint bash -it --runtime=nvidia --gpus all \
 	-v ~/docker/isaac-sim/documents:/root/Documents:rw \
 	-v ~/COMSW4733-Group-Project:/root:rw \
 	nvcr.io/nvidia/isaac-sim:5.0.0
+    #isaac_sim_ros:ubuntu_22_humble 
+    #ros-isaac-sim
