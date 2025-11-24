@@ -67,9 +67,42 @@ Install Isaac Sim WebRTC Streaming Client on your Local Desktop
 Run the client using the public ip address of the gcloud Spot Instance  
 
 
+# Runing Moveit2 Docker Container Locally
+Note that the command on the official website for Humble Moveit2, doesn't actually work. Please refer to the General Guide Instead
+
+Running Moveit2 Docker container
+```
+wget https://raw.githubusercontent.com/ros-planning/moveit2_tutorials/main/.docker/docker-compose.yml
+# Running with cpu not gpu on local system
+DOCKER_IMAGE=humble-humble-tutorial-source docker compose run --rm --name moveit2_container cpu
+# Rolling Ridley Distro Option, because Setup Assistant was giving me issues in Humble Distro
+DOCKER_IMAGE=main-rolling-tutorial-source docker compose run --rm --name moveit2_container cpu
+```
+
+Running Moveit2 Setup Assistant inside the Docker Container
+```
+ros2 launch moveit_setup_assistant setup_assistant.launch.py --debug
+```
+
+Building and Running ur5e\_cutter Packages
+```
+cd ~/ws_moveit/
+colcon build --packages-select ur5e_cutter_description
+colcon build --packages-select ur5e_cutter_moveit_config
+source install/local_setup.bash
+ros2 launch ur5e_cutter_moveit_config demo.launch.py
+```
+
+
 # Official Documentation
 [How to Install Isaac Sim on Google Cloud](https://docs.isaacsim.omniverse.nvidia.com/5.0.0/installation/install_advanced_cloud_setup_gcp.html)  
 
 [Install GPU Driver](https://cloud.google.com/compute/docs/gpus/install-drivers-gpu#linux)  
 
 [Issac Sim Latest Releases](https://docs.isaacsim.omniverse.nvidia.com/5.0.0/installation/download.html#isaac-sim-latest-release)  
+
+[General Moveit2 Docker Guide](https://moveit.picknik.ai/main/doc/how_to_guides/how_to_setup_docker_containers_in_ubuntu.html)
+
+[Humble Moveit2 Docker Guide](https://moveit.picknik.ai/humble/doc/how_to_guides/how_to_setup_docker_containers_in_ubuntu.html)
+
+[Moveit2 Setup Assistant Tutorial](https://moveit.picknik.ai/main/doc/examples/setup_assistant/setup_assistant_tutorial.html)
