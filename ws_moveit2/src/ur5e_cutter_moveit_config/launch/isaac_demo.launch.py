@@ -19,7 +19,7 @@ def generate_launch_description():
     )
 
     moveit_config = (
-        MoveItConfigsBuilder("ur5e_cutter")
+        MoveItConfigsBuilder("ur5e_cutter", package_name="ur5e_cutter_moveit_config")
         .robot_description(
             file_path="config/ur5e.urdf.xacro",
             mappings={
@@ -29,6 +29,7 @@ def generate_launch_description():
             },
         )
         .robot_description_semantic(file_path="config/ur5e.srdf")
+        .planning_scene_monitor(publish_robot_description=True, publish_robot_description_semantic=True)
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner"])
         .to_moveit_configs()
