@@ -123,8 +123,28 @@ cd /root/ws_moveit2/
 colcon build # first build will take approximately an hour
 colcon build --packages-select ur5e_cutter_moveit_config # for subsequent builds where you are only changing this package
 source install/setup.bash
-ros2 launch ur5e_cutter_moveit_config demo.launch.py
+ros2 launch ur5e_cutter_moveit_config isaac_demo.launch.py
 ```
+
+In Isaac Sim, open and run the create\_scene.py file in the scripts editor window. Follow the instructions below to create the Action Graph and press the play button.
+
+In the Moveit2 rviz GUI, select the planning algorithm on the context tab (testing with BiRRT). In the planning tab, set Goal State to ready and click "Plan & Execute"
+
+It is possible that the algorithm does not successfully find a path given the constraints first try. This is expected.
+
+
+# Creating the Action Graph in IsaacSim
+
+Creating the Action Graph in Python hasn't been completed yet. This is how to do it manually from the GUI.
+
+1. Tools > Robotics > ROS 2 OmniGraphs > Joint States
+2. Select /World/ur5e\_cutter in Articulation Root Add
+3. Change Publisher Topic to /isaac\_joint\_states
+4. Change Subscriber Topic to /isaac\_joint\_commands
+5. Check off the Publisher and Subcriber Boxes
+6. Click OK
+
+Fixing the joint state publisher: Add an articulation root to shoulder\_link and select that as the targetPrim instead
 
 
 # Official Documentation
