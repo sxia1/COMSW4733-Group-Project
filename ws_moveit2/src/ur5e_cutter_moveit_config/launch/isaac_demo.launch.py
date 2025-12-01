@@ -31,7 +31,7 @@ def generate_launch_description():
         .robot_description_semantic(file_path="config/ur5e.srdf")
         .planning_scene_monitor(publish_robot_description=True, publish_robot_description_semantic=True)
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
-        .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner"])
+        .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()
     )
 
@@ -40,7 +40,14 @@ def generate_launch_description():
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
-        parameters=[moveit_config.to_dict()],
+        parameters=[
+            moveit_config.to_dict(),
+            {
+                'planning_pipeline': 'ompl',
+                'planning_plugin': 'ompl_interface/OMPLPlanner',
+                'planning_interface': 'ompl_interface/OMPLPlanning',
+            }
+        ],
         arguments=["--ros-args", "--log-level", "info"],
     )
 
@@ -54,6 +61,7 @@ def generate_launch_description():
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
+        name="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
         parameters=[

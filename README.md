@@ -93,6 +93,39 @@ source install/local_setup.bash
 ros2 launch ur5e_cutter_moveit_config demo.launch.py
 ```
 
+# Configuring X11 forwarding
+
+Copy gcloud ssh command and add -X ssh flag
+```
+gcloud compute ssh --ssh-flag="-X" --zone "<ZONE>" "<INSTANCE>" --project "<PROJECT>"
+```
+
+Everything else is handled in the Dockerfiles, but here are some commands
+```
+xclock
+xauth list
+echo $DISPLAY
+echo $XAUTHORITY
+```
+
+# Running Moveit2 and IsaacSim Integration
+```
+cd COMS4733-Group-Project
+# builds the Docker Image and starts the interactive container
+. scripts/my_start_isaac_sim.sh
+. /root/scripts/start_isaac_sim.sh
+
+# Open a new Terminal session
+docker exec -it $user-isaac-sim bash
+cd /root/ws_moveit2/
+. /root/scripts/setup_ros.sh
+
+colcon build # first build will take approximately an hour
+colcon build --packages-select ur5e_cutter_moveit_config # for subsequent builds where you are only changing this package
+source install/setup.bash
+ros2 launch ur5e_cutter_moveit_config demo.launch.py
+```
+
 
 # Official Documentation
 [How to Install Isaac Sim on Google Cloud](https://docs.isaacsim.omniverse.nvidia.com/5.0.0/installation/install_advanced_cloud_setup_gcp.html)  
@@ -106,3 +139,5 @@ ros2 launch ur5e_cutter_moveit_config demo.launch.py
 [Humble Moveit2 Docker Guide](https://moveit.picknik.ai/humble/doc/how_to_guides/how_to_setup_docker_containers_in_ubuntu.html)
 
 [Moveit2 Setup Assistant Tutorial](https://moveit.picknik.ai/main/doc/examples/setup_assistant/setup_assistant_tutorial.html)
+
+[X11 Forwarding](https://www.simplified.guide/ssh/x11-forwarding-as-root)

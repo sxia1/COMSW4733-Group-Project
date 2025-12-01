@@ -6,7 +6,6 @@ controller_manager:
     ur5e_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
@@ -21,10 +20,7 @@ ur5e_arm_controller:
       - wrist_3_joint
     command_interfaces:
       - position
-      - velocity
-      - effort
     state_interfaces:
       - position
       - velocity
-      - effort
     allow_nonzero_velocity_at_trajectory_end: true

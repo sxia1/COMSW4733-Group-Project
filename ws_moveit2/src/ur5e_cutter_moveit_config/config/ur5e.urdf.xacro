@@ -8,7 +8,6 @@
     <!-- Import control_xacro -->
     <xacro:include filename="ur5e.ros2_control.xacro" />
 
-
-    <xacro:ur5e_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+    <xacro:ur5e_ros2_control name="ur5eFakeSystem" initial_positions_file="$(arg initial_positions_file)" ros2_control_hardware_type="$(arg ros2_control_hardware_type)"/>
 
 </robot>
