@@ -13,6 +13,9 @@ Visualization Manager:
     - Class: rviz_default_plugins/Grid
       Name: Grid
       Value: true
+    - Class: moveit_rviz_plugin/PlanningScene
+      Name: PlanningScene
+      Value: true
     - Class: moveit_rviz_plugin/MotionPlanning
       Name: MotionPlanning
       Planned Path:
@@ -26,8 +29,14 @@ Visualization Manager:
       Scene Robot:
         Robot Alpha: 0.5
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: ConstraintMarkers
+      Value: True
+      Topic: /constraint_markers
+      Alpha: 1.0
+      Scale: 1.0
   Global Options:
-    Fixed Frame: world
+    Fixed Frame: base_link
   Tools:
     - Class: rviz_default_plugins/Interact
     - Class: rviz_default_plugins/MoveCamera
@@ -43,7 +52,7 @@ Visualization Manager:
         Z: 0.30
       Name: Current View
       Pitch: 0.5
-      Target Frame: world
+      Target Frame: base_link
       Yaw: -0.623
 Window Geometry:
   Height: 975
