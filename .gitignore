@@ -205,3 +205,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+data/labels_teaser.csv # 今後無視するようにする
