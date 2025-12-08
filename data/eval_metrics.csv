@@ -1,0 +1,2 @@
+tree_id,trajectory_csv,target_x,target_y,target_z,duration,path_length,final_error,min_error,time_at_min_error
+tree_1_V_0001,data/trajectory_tree_1_V_0001.csv,1.6500000000000001,1.51,0.11,36.1666666666659,6.636261299463081,1.9394733851034545,1.5344135167842639,25.499999999999833
