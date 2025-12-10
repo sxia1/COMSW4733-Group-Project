@@ -1,87 +1,71 @@
-import csv
-import os
-
-import carb
 import omni
-import omni.physx as physx
+from pxr import PhysxSchema, UsdPhysics, Usd, Gf
+import csv
+import time
 
-# この run で使う tree ID（ファイル名に埋め込み）
-TREE_ID = "tree_1_V_0001"
+# ログファイルの保存先
+CSV_PATH = "/root/collision_log.csv"
 
-# いつものプロジェクトディレクトリに合わせる
-OUTPUT_DIR = "/root/COMSW4733-Group-Project/data"
-CSV_PATH = os.path.join(OUTPUT_DIR, f"collisions_{TREE_ID}.csv")
+# どの Prim 同士の衝突を見るか（必要なら変更）
+ROBOT_PRIM = "/World/ur5e_cutter"
+TREE_PRIM = "/World/tree"
 
-# Isaac Sim のインターフェースを取得
-_timeline = omni.timeline.get_timeline_interface()
-_physx = physx.acquire_physx_interface()
-
-_subscription = None
-_rows = []  # (sim_time, num_contacts) のリスト
+stage = omni.usd.get_context().get_stage()
 
 
-def _on_contact(headers, data):
-    """
-    PhysX の contact report コールバック。
+def get_all_collisions():
+    """シーン内のすべての衝突イベントを返す"""
+    physxIFace = omni.physx.acquire_physx_interface()
+    contact_report = physxIFace.get_contact_report()
+    return contact_report
 
-    headers: ContactEventHeaderVector
-    data   : ContactDataVector
-    """
-    global _rows
 
-    # このステップのシミュレーション時間
-    t = _timeline.get_current_time()
-
-    # このステップで発生した接触点の数
-    num_contacts = len(data)
-
-    # 衝突がなければ何も記録しない
-    if num_contacts == 0:
-        return
-
-    _rows.append((t, num_contacts))
+def prim_involved(contact, prim_paths):
+    """衝突の当事者に特定の Prim が含まれているか確認"""
+    return (contact.rigid_body0 in prim_paths) or (contact.rigid_body1 in prim_paths)
 
 
 def start_collision_logging():
-    """
-    衝突ログの記録を開始。
-    再生ボタンを押す「前」にこれを一度呼びます。
-    """
-    global _subscription, _rows
+    print("[collision_logger] Starting collision logging...")
 
-    if _subscription is not None:
-        carb.log_warn("[collision] logging is already running")
-        return
+    # 監視 Prim の全子孫 Prim を収集
+    def get_descendants(path):
+        prim = stage.GetPrimAtPath(path)
+        return [str(p.GetPath()) for p in Usd.PrimRange(prim)]
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    _rows = []
+    robot_prims = set(get_descendants(ROBOT_PRIM))
+    tree_prims = set(get_descendants(TREE_PRIM))
 
-    _subscription = _physx.subscribe_contact_report_events(_on_contact)
-    carb.log_info(f"[collision] started logging, will save to: {CSV_PATH}")
+    print(f"[collision_logger] Robot prim count = {len(robot_prims)}")
+    print(f"[collision_logger] Tree prim count = {len(tree_prims)}")
+    print(f"[collision_logger] Logging CSV → {CSV_PATH}")
 
-
-def stop_collision_logging():
-    """
-    衝突ログの記録を停止し、CSV に書き出し。
-    シミュレーションが終わったら呼びます。
-    """
-    global _subscription
-
-    if _subscription is None:
-        carb.log_warn("[collision] logging is not running")
-        return
-
-    # サブスクリプション解除
-    try:
-        _subscription.unsubscribe()
-    except Exception as e:
-        carb.log_warn(f"[collision] failed to unsubscribe: {e}")
-    _subscription = None
-
-    # CSV に書き出し
+    # CSV 書き込み開始
     with open(CSV_PATH, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["sim_time", "collision_count"])
-        writer.writerows(_rows)
+        writer.writerow(["time", "robot_prim", "tree_prim", "normal", "impulse"])
 
-    carb.log_info(f"[collision] saved {len(_rows)} rows to {CSV_PATH}")
+        # ハンドラ内で毎フレーム実行
+        def on_update(dt):
+            report = get_all_collisions()
+            now = time.time()
+
+            for contact in report.contacts:
+                a = contact.rigid_body0
+                b = contact.rigid_body1
+
+                # 片方がロボット、もう片方が木の場合のみログ
+                if (a in robot_prims and b in tree_prims) or (a in tree_prims and b in robot_prims):
+                    writer.writerow([
+                        now,
+                        a,
+                        b,
+                        list(contact.contact_normal),
+                        contact.impulse
+                    ])
+                    print(f"[collision_logger] Collision: {a} <-> {b}")
+
+        # USD Update イベント購読
+        update_sub = omni.timeline.get_timeline().get_update_event_stream().create_subscription_to_pop(on_update)
+
+    print("[collision_logger] Logging active.")
