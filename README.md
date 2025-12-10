@@ -136,15 +136,13 @@ It is possible that the algorithm does not successfully find a path given the co
 # Creating the Action Graph in IsaacSim
 
 Creating the Action Graph in Python hasn't been completed yet. This is how to do it manually from the GUI.
-
+0. Add an articulation root to shoulder\_link: right click shoulder\_link > Add > Physics > Articulation Root
 1. Tools > Robotics > ROS 2 OmniGraphs > Joint States
-2. Select /World/ur5e\_cutter in Articulation Root Add
+2. Select /World/ur5e\_cutter/shoulder\_link in Articulation Root Add
 3. Change Publisher Topic to /isaac\_joint\_states
 4. Change Subscriber Topic to /isaac\_joint\_commands
-5. Check off the Publisher and Subcriber Boxes
+5. Check off the Publisher and Subscriber Boxes
 6. Click OK
-
-Fixing the joint state publisher: Add an articulation root to shoulder\_link and select that as the targetPrim instead
 
 
 # Official Documentation
