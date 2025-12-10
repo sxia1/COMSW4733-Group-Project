@@ -1,3 +1,4 @@
+import trimesh
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
@@ -8,6 +9,12 @@ from moveit_msgs.msg import (
     PositionConstraint,
     OrientationConstraint,
     PlanningScene,
+    CollisionObject,
+)
+from shape_msgs.msg import (
+    Mesh,
+    MeshTriangle,
+    SolidPrimitive,
 )
 from builtin_interfaces.msg import Duration
 from shape_msgs.msg import SolidPrimitive
@@ -15,13 +22,14 @@ from rclpy.action import ActionClient
 from visualization_msgs.msg import Marker, MarkerArray
 from math import sqrt
 
-X = 0.1
-Y = 0.72
-Z = 0.3
-OX = sqrt(0.5)
+X = -0.1
+Y = 0.82
+Z = 0.15
+OX = -sqrt(0.5)
 OY = 0.0
 OZ = 0.0
 OW = sqrt(0.5)
+
 
 def make_sphere(x, y, z, w, scale=0.25):
     sphere = Marker()
@@ -116,6 +124,7 @@ class MoveItPoseGoal(Node):
 
 def main():
     rclpy.init()
+
     node = MoveItPoseGoal()
     node.send_goal()
     marker_pub = node.create_publisher(MarkerArray, "/constraint_markers", 10)
