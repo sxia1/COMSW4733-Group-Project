@@ -1,71 +1,103 @@
 import omni
-from pxr import PhysxSchema, UsdPhysics, Usd, Gf
+import omni.kit.app
+from pxr import Usd
+import omni.physx as physx
 import csv
 import time
 
-# ログファイルの保存先
-CSV_PATH = "/root/collision_log.csv"
+# ====== 設定 ======
+CSV_PATH = "/root/collision_log.csv"      # ログの保存先
+ROBOT_ROOT = "/World/ur5e_cutter"         # ロボットのルート Prim
+TREE_ROOT = "/World/tree"                 # 木のルート Prim
 
-# どの Prim 同士の衝突を見るか（必要なら変更）
-ROBOT_PRIM = "/World/ur5e_cutter"
-TREE_PRIM = "/World/tree"
+_stage = omni.usd.get_context().get_stage()
+_physx = physx.get_physx_interface()
 
-stage = omni.usd.get_context().get_stage()
-
-
-def get_all_collisions():
-    """シーン内のすべての衝突イベントを返す"""
-    physxIFace = omni.physx.acquire_physx_interface()
-    contact_report = physxIFace.get_contact_report()
-    return contact_report
+_update_sub = None
+_started = False
+_robot_prims = set()
+_tree_prims = set()
 
 
-def prim_involved(contact, prim_paths):
-    """衝突の当事者に特定の Prim が含まれているか確認"""
-    return (contact.rigid_body0 in prim_paths) or (contact.rigid_body1 in prim_paths)
+def _get_descendants(path):
+    """指定した Prim 以下のすべての Prim パスを列挙"""
+    prim = _stage.GetPrimAtPath(path)
+    if not prim.IsValid():
+        print(f"[collision_logger] WARNING: Prim {path} not found.")
+        return []
+    return [str(p.GetPath()) for p in Usd.PrimRange(prim)]
 
 
 def start_collision_logging():
+    """毎フレームの衝突情報を CSV に記録し始める"""
+    global _update_sub, _started, _robot_prims, _tree_prims
+
+    if _started:
+        print("[collision_logger] Already running.")
+        return
+
+    _robot_prims = set(_get_descendants(ROBOT_ROOT))
+    _tree_prims = set(_get_descendants(TREE_ROOT))
+
     print("[collision_logger] Starting collision logging...")
+    print(f"[collision_logger] Robot prim count = {len(_robot_prims)}")
+    print(f"[collision_logger] Tree  prim count = {len(_tree_prims)}")
+    print(f"[collision_logger] Logging CSV -> {CSV_PATH}")
 
-    # 監視 Prim の全子孫 Prim を収集
-    def get_descendants(path):
-        prim = stage.GetPrimAtPath(path)
-        return [str(p.GetPath()) for p in Usd.PrimRange(prim)]
-
-    robot_prims = set(get_descendants(ROBOT_PRIM))
-    tree_prims = set(get_descendants(TREE_PRIM))
-
-    print(f"[collision_logger] Robot prim count = {len(robot_prims)}")
-    print(f"[collision_logger] Tree prim count = {len(tree_prims)}")
-    print(f"[collision_logger] Logging CSV → {CSV_PATH}")
-
-    # CSV 書き込み開始
+    # まずヘッダだけ書いておく
     with open(CSV_PATH, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["time", "robot_prim", "tree_prim", "normal", "impulse"])
+        writer.writerow(
+            ["time", "body0", "body1",
+             "normal_x", "normal_y", "normal_z",
+             "impulse"]
+        )
 
-        # ハンドラ内で毎フレーム実行
-        def on_update(dt):
-            report = get_all_collisions()
-            now = time.time()
+    def on_update(dt: float):
+        """毎フレーム呼ばれて衝突をチェック"""
+        report = _physx.get_contact_report()
+        if report is None:
+            return
 
-            for contact in report.contacts:
-                a = contact.rigid_body0
-                b = contact.rigid_body1
+        now = time.time()
+        rows = []
 
-                # 片方がロボット、もう片方が木の場合のみログ
-                if (a in robot_prims and b in tree_prims) or (a in tree_prims and b in robot_prims):
-                    writer.writerow([
-                        now,
-                        a,
-                        b,
-                        list(contact.contact_normal),
-                        contact.impulse
-                    ])
-                    print(f"[collision_logger] Collision: {a} <-> {b}")
+        for c in report.contacts:
+            a = c.rigid_body0
+            b = c.rigid_body1
 
-        # USD Update イベント購読
-        update_sub = omni.timeline.get_timeline().get_update_event_stream().create_subscription_to_pop(on_update)
+            # 片方がロボット群、もう片方が木群ならログ対象
+            if (a in _robot_prims and b in _tree_prims) or (a in _tree_prims and b in _robot_prims):
+                n = c.contact_normal
+                rows.append([
+                    now,
+                    a,
+                    b,
+                    n[0], n[1], n[2],
+                    c.impulse
+                ])
+                print(f"[collision_logger] Collision: {a} <-> {b}")
 
-    print("[collision_logger] Logging active.")
+        if rows:
+            # ここで追記モードで一気に書く
+            with open(CSV_PATH, "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerows(rows)
+
+    # ★ ここが修正ポイント：timeline ではなく kit.app の update イベントを使う
+    update_stream = omni.kit.app.get_app().get_update_event_stream()
+    _update_sub = update_stream.create_subscription_to_pop(
+        on_update, name="collision_logger_update"
+    )
+
+    _started = True
+    print("[collision_logger] Subscribed to update events.")
+
+
+def stop_collision_logging():
+    """購読を止める（必要なら）"""
+    global _update_sub, _started
+    if _update_sub is not None:
+        _update_sub = None
+    _started = False
+    print("[collision_logger] Stopped collision logging.")
