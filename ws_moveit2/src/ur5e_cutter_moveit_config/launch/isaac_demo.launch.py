@@ -35,6 +35,20 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
+    warehouse_ros_config = {
+        # For warehouse_ros_sqlite
+        "warehouse_plugin": "warehouse_ros_sqlite::DatabaseConnection",
+        "warehouse_host": os.path.join(
+            get_package_share_directory("ur5e_cutter_moveit_config"),
+            "config",
+            "ur_benchmarks.sqlite",
+        )
+        # For warehouse_ros_mongodb use the following instead
+        # "warehouse_port": 33829,
+        # "warehouse_host": "localhost",
+        # "warehouse_plugin": "warehouse_ros_mongo::MongoDatabaseConnection",
+    }
+
     # Start the actual move_group node/action server
     move_group_node = Node(
         package="moveit_ros_move_group",
@@ -46,7 +60,8 @@ def generate_launch_description():
                 'planning_pipeline': 'ompl',
                 'planning_plugin': 'ompl_interface/OMPLPlanner',
                 'planning_interface': 'ompl_interface/OMPLPlanning',
-            }
+            },
+            warehouse_ros_config,
         ],
         arguments=["--ros-args", "--log-level", "info"],
     )
@@ -70,6 +85,7 @@ def generate_launch_description():
             moveit_config.robot_description_kinematics,
             moveit_config.planning_pipelines,
             moveit_config.joint_limits,
+            warehouse_ros_config,
         ],
     )
 
