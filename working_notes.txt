@@ -1,0 +1,19 @@
+Additional Installs
+apt install ros-humble-warehouse-ros-sqlite
+apt install ros-humble-moveit-ros-benchmarks
+apt install python3-pip
+pip install trimesh
+
+cd ~/ws_moveit/src
+git clone https://github.com/ros-planning/moveit_benchmark_resources.git
+colcon build --packages-select=moveit_benchmark_resources
+colcon build --packages-select moveit_ros_benchmarks
+
+Additional Documentation
+https://moveit.picknik.ai/humble/doc/examples/persistent_scenes_and_states/persistent_scenes_and_states.html
+
+Backport benchmark package fix using this forum post
+https://discourse.openrobotics.org/t/fixing-moveit2-humble-moveit-ros-benchmarks-package/32048
+directory of files to fix
+~/ws_moveit/src/moveit2/moveit_ros/benchmarks/src
+need to rebuild benchmark package and the ur5e_cutter_moveit_config after applying backport
