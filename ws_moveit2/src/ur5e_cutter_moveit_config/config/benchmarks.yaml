@@ -7,20 +7,37 @@
 warehouse:
     host: /root/ws_moveit/src/ur5e_cutter_moveit_config/config/ur_benchmarks.sqlite
     port: 33829
-    scene_name: ur5e_cutter/scene001.yaml     # Required
+    scene_name: tree1     # Required
 parameters:
     name: CutBranch1
     runs: 50
     group: ur5e_arm       # Required
     timeout: 10.0
     output_directory: /tmp/moveit_benchmarks/
-    queries: Pick1
-    start_states: Start1
+    queries: Motion Plan Request 0
+    start_states: ur5e_state_000
 planning_pipelines:
     pipelines: [pipeline1]
     pipeline1:
         name: ompl
         planners:
+            - RRTkConfigDefault
             - RRTConnectkConfigDefault
-            - BKPIECEkConfigDefault
-            - KPIECEkConfigDefault
+            - RRTstarkConfigDefault
+            - TRRTkConfigDefault
+            - PRMkConfigDefault
+            - PRMstarkConfigDefault
+            - FMTkConfigDefault
+            - BFMTkConfigDefault
+            - BiTRRTkConfigDefault
+            - LBTRRTkConfigDefault
+            - LazyPRMkConfigDefault
+            - LazyPRMstarkConfigDefault
+            - geometric:RRT
+            - geometric:RRTConnect
+            - geometric:RRTstar
+            - geometric:BiTRRT
+            - geometric:FMT
+            - geometric:BFMT
+            - geometric:PRM
+            - geometric:PRMstar

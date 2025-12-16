@@ -24,7 +24,7 @@ def generate_launch_description():
                 "ros2_control_hardware_type": "isaac"
             },
         )
-        .planning_pipelines("ompl", ["ompl"]) #, "stomp", "pilz_industrial_motion_planner"])
+        .planning_pipelines(pipelines=["ompl"]) #, "stomp", "pilz_industrial_motion_planner"])
         .moveit_cpp(
             os.path.join(
                 get_package_share_directory("ur5e_cutter_moveit_config"),
@@ -37,11 +37,15 @@ def generate_launch_description():
 
     warehouse_ros_config = {
         "warehouse_plugin": "warehouse_ros_sqlite::DatabaseConnection", # needed to use sqlite instead of mongodb
-        # "warehouse_host": "localhost"  # not needed because host and port are set in benchmark_config
+        "warehouse_host": "/root/ws_moveit/src/ur5e_cutter_moveit_config/config/ur_benchmarks.sqlite",
+        "warehouse_port": 33829
     }
 
     ompl_planning_pipeline_config = {
-        "planning_plugin": "ompl_interface/OMPLPlanner",    # currently a workaround for the Error: Multiple planning plugins available. You should specify the '~planning_plugin' parameter. Using 'chomp_interface/CHOMPPlanner' for now.
+        # currently a workaround for the Error: Multiple planning plugins available. You should specify the '~planning_plugin' parameter. Using 'chomp_interface/CHOMPPlanner' for now.
+        "planning_pipeline": "ompl",
+        "planning_plugin": "ompl_interface/OMPLPlanner",
+        "planning_interface": "ompl_interface/OMPLPlanning",
     }
 
     # moveit_ros_benchmark demo executable
